@@ -695,6 +695,28 @@ void loop() {
     return;
   }
 
+  if(len == 2 && cmdbuffer[0] == UI2C_RAW_CMD_PREFIX && cmdbuffer[1] == UI2C_RAW_CMD_IO_DIR){
+    uint8_t pin_num = Serial.read();
+    pinMode(pin_num, Serial.read());
+    pos = 0;
+    len = 0;
+    return;
+  }
+
+  if(len == 2 && cmdbuffer[0] == UI2C_RAW_CMD_PREFIX && cmdbuffer[1] == UI2C_RAW_CMD_IO_OUT){
+    uint8_t pin_num = Serial.read();
+    digitalWrite(pin_num, Serial.read());
+    pos = 0;
+    len = 0;
+    return;
+  }
+
+  if(len == 2 && cmdbuffer[0] == UI2C_RAW_CMD_PREFIX && cmdbuffer[1] == UI2C_RAW_CMD_IO_IN){
+    Serial.write(digitalRead(Serial.read()));
+    pos = 0;
+    len = 0;
+    return;
+  }  
   /*****************
   Handle RAW data
    *****************/
