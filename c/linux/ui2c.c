@@ -10,7 +10,7 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
-#include <usb-i2c.h>
+#include <arduino/usb-i2c/usb-i2c.h>
 
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
