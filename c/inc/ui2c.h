@@ -47,6 +47,9 @@ DLL_EXPORT int  __stdcall probe_ui2c_device(const char *dev_name, int speed);
 DLL_EXPORT void __stdcall ui2c_enable_logging (F_HANDLE fd, unsigned char uLevel);
 DLL_EXPORT int  __stdcall ui2c_rdwr(F_HANDLE fd, struct i2c_msg **msgs, int num_msgs);
 DLL_EXPORT int  __stdcall i2c_probe_dev(F_HANDLE fd, int dev_addr);
+DLL_EXPORT void gpio_pin_mode(int fd, uint8_t pin_num, uint8_t pin_mode);
+DLL_EXPORT void gpio_digital_write(int fd, uint8_t pin_num, uint8_t state);
+DLL_EXPORT int gpio_digital_read(int fd, uint8_t pin_num);
 
 #ifdef __cplusplus
 }

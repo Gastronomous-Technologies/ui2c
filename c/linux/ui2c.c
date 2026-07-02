@@ -302,18 +302,18 @@ void ui2c_enable_logging(int fd, unsigned char uLevel) {
 
 void gpio_pin_mode(int fd, uint8_t pin_num, uint8_t pin_mode) {
     // 0: input, 1: output
-    unsigned char b[5] = {2, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_DIR, pin_num, pin_mode};
+    unsigned char b[5] = {1, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_DIR, pin_num, pin_mode};
     write(fd, b, sizeof(b));
-} 
+}
 
 void gpio_digital_write(int fd, uint8_t pin_num, uint8_t state) {
-    unsigned char b[5] = {2, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_OUT, pin_num, state};
+    unsigned char b[5] = {1, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_OUT, pin_num, state};
     write(fd, b, sizeof(b));
-} 
+}
 
 int gpio_digital_read(int fd, uint8_t pin_num) {
     // 0: input, 1: output
-    unsigned char b[4] = {2, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_IN, pin_num};
+    unsigned char b[4] = {1, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_IN, pin_num};
     write(fd, b, sizeof(b));
 
     uint8_t gpio_state_byte;
