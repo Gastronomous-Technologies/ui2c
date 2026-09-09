@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <poll.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
@@ -326,6 +327,32 @@ int gpio_digital_read(int fd, uint8_t pin_num) {
     }
 } 
 
+#define UI2C_REPLY_TIMEOUT_MS 200
+#define UI2C_RESYNC_SETTLE_MS 20
+
+/* Read exactly len bytes, waiting up to timeout_ms for each chunk. Returns bytes read. */
+static ssize_t read_exact(int fd, uint8_t *buf, size_t len, int timeout_ms) {
+    size_t total = 0;
+    while (total < len) {
+        struct pollfd pfd = { .fd = fd, .events = POLLIN };
+        if (poll(&pfd, 1, timeout_ms) <= 0) {
+            break;
+        }
+        ssize_t n = read(fd, buf + total, len - total);
+        if (n <= 0) {
+            break;
+        }
+        total += (size_t)n;
+    }
+    return (ssize_t)total;
+}
+
+/* Drop whatever is left of a garbled frame so the next transaction starts aligned. */
+static void ui2c_resync(int fd) {
+    usleep(UI2C_RESYNC_SETTLE_MS * 1000);
+    reset_input_buffer(fd);
+}
+
 int ui2c_rdwr(int fd, struct i2c_msg **msgs, int num_msgs) {
     // End previous transaction if any
     ui2c_start_stop(fd, 0);
@@ -355,7 +382,7 @@ int ui2c_rdwr(int fd, struct i2c_msg **msgs, int num_msgs) {
             if (bytes_read == 0) {
                 // Timeout
                 printf("UI2C communication timeout\n");
-                // Cleanup resources and handle the error
+                ui2c_resync(fd);
                 return UI2C_2W_ERR_TIMEOUT;
             }
 
@@ -376,7 +403,7 @@ int ui2c_rdwr(int fd, struct i2c_msg **msgs, int num_msgs) {
                 ssize_t bytes_read = read(fd, &err, 1);
                 if (bytes_read == 0) {
                     printf("UI2C Error status timeout\n");
-                    // Cleanup resources and handle the error
+                    ui2c_resync(fd);
                     return UI2C_2W_ERR_TIMEOUT;
                 }
 
@@ -408,13 +435,23 @@ int ui2c_rdwr(int fd, struct i2c_msg **msgs, int num_msgs) {
             }
 
             if (msg->flags & I2C_M_RD && length) {
-                reply = (uint8_t*)malloc(length);
-                ssize_t bytes_read = read(fd, reply, length);
-                if (bytes_read > 0) {
-                    msg->len = length;
-                    memcpy(msg->buf, reply, length);
+                if (length > msg->len) {
+                    // reply longer than the caller's buffer: stream is out of sync
+                    printf("I2C Error: reply length %u exceeds buffer %u\n", length, msg->len);
+                    ui2c_resync(fd);
+                    return UI2C_2W_ERR_TOO_LONG;
                 }
-                // Clean up allocated memory
+                reply = (uint8_t*)malloc(length);
+                ssize_t bytes_read = read_exact(fd, reply, length, UI2C_REPLY_TIMEOUT_MS);
+                if (bytes_read < (ssize_t)length) {
+                    // partial frame: a single read() can return fewer bytes than announced
+                    printf("I2C Error: reply truncated, got %zd of %u bytes\n", bytes_read, length);
+                    free(reply);
+                    ui2c_resync(fd);
+                    return UI2C_2W_ERR_TIMEOUT;
+                }
+                msg->len = length;
+                memcpy(msg->buf, reply, length);
                 free(reply);
             }
 
