@@ -56,6 +56,10 @@ UI2C_RAW_CMD_MODE    =  0xff    # switch between RAW (native) and Coptonix #0201
 UI2C_RAW_CMD_BEGIN   =  0xfe    # acquire/release I2C bus for sequential transactions, next byte 0/1 treated as release(0)/acquire(1)
 UI2C_RAW_CMD_LOG     =  0xfd    # change logging level. Next byte: 0 - disabled, 1-3 used, 4+ - reserved
 
+UI2C_RAW_CMD_IO_DIR  =  0xfc    # the direction of the target chip's GPIO pin
+UI2C_RAW_CMD_IO_OUT  =  0xfb    # the desired state of the target chip's output pin
+UI2C_RAW_CMD_IO_IN   =  0xfa    # the current state of the target chip's GPIO pins
+
 class i2c_msg(Structure):
     """
     As defined in ``i2c.h``.
@@ -314,6 +318,25 @@ class UartI2C(object):
         b = [2, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_LOG, bEnable]
         self.fd.write(b)
     #end _enable_logging()
+
+    def pin_mode(self, gpio_pin, state):
+        b = [1, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_DIR, gpio_pin, state]
+        self.fd.write(b)
+
+    def digital_write(self, gpio_pin, state):
+        b = [1, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_OUT, gpio_pin, state]
+        self.fd.write(b)
+
+    def digital_read(self, gpio_pin):
+        b = [1, UI2C_RAW_CMD_PREFIX, UI2C_RAW_CMD_IO_IN, gpio_pin]
+        self.fd.write(b)
+        gpio_state_byte = self.fd.read()
+        if int.from_bytes(gpio_state_byte):
+            gpio_state = True
+        else:
+            gpio_state = False
+
+        return gpio_state
 
     def i2c_err_to_msg(self, err):
         if(err == UI2C_2W_STATUS_OK):  # 0

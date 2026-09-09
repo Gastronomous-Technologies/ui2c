@@ -60,6 +60,9 @@
 
 #define UI2C_RAW_LOG_PREFIX    0xfe     // UI2C log message, terminated with \n character, are sent when logging is enabled
 
+#define UI2C_RAW_CMD_IO_DIR    0xfc     // the direction of the chip's gpio pin
+#define UI2C_RAW_CMD_IO_OUT    0xfb     // the desired state of the chip's output pin
+#define UI2C_RAW_CMD_IO_IN     0xfa     // the current state of the chip's gpio pin
 
 //#define CMD_TIMEOUT       100  // 100 ms
 #define CMD_TIMEOUT       1000  // 1000 ms
